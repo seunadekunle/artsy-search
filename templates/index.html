@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Artist Search</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/styles.css') }}"
+    />
+  </head>
+  <body>
+    <header>
+      <h1>Artist Search</h1>
+    </header>
+
+    <main>
+      <div class="search-container">
+        <form id="searchForm">
+          <div class="search-bar">
+            <button
+              type="submit"
+              class="search-icon"
+              id="searchIcon"
+              aria-label="Search"
+            >
+              <img
+                src="{{ url_for('static', filename='images/search_icon.png') }}"
+                alt="Search"
+                width="20"
+                height="20"
+              />
+            </button>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Please enter an artist name."
+              required
+              aria-label="Search for an artist"
+            />
+            <button
+              type="button"
+              class="clear-icon"
+              id="clearIcon"
+              aria-label="Clear search"
+            >
+              <img
+                src="{{ url_for('static', filename='images/clear_icon.png') }}"
+                alt="Search"
+                width="20"
+                height="20"
+              />
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div
+        id="loadingSearch"
+        class="loading-container"
+        style="display: none"
+        aria-hidden="true"
+      >
+        <img
+          src="{{ url_for('static', filename='images/loading.gif') }}"
+          alt="Loading..."
+          class="loading-gif"
+        />
+      </div>
+
+      <div id="resultsSection">
+        <div id="noResults" class="error-message" style="display: none;">
+          No results found.
+        </div>
+
+        <div
+          id="resultsList"
+          class="results-container"
+          role="list"
+          aria-label="Artist search results"
+        ></div>
+      </div>
+
+      <div
+        id="loadingDetails"
+        class="loading-container"
+        style="display: none"
+        aria-hidden="true"
+      >
+        <img
+          src="{{ url_for('static', filename='images/loading.gif') }}"
+          alt="Loading..."
+          class="loading-gif"
+        />
+      </div>
+
+      <div
+        id="artistDetails"
+        class="artist-details"
+        role="region"
+        aria-label="Artist details"
+      ></div>
+    </main>
+
+    <footer>
+      <a href="https://www.artsy.net" target="_blank" rel="noopener noreferrer">
+        Powered by
+        <img
+          src="{{ url_for('static', filename='images/artsy_logo.svg') }}"
+          alt="Artsy"
+          class="artsy-logo"
+        />Artsy.
+      </a>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  </body>
+</html>
