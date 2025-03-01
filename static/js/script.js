@@ -8,15 +8,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingDetails = document.getElementById('loadingDetails');
     const resultsList = document.getElementById('resultsList');
     const artistDetails = document.getElementById('artistDetails');
-    const errorTooltip = document.getElementById('errorTooltip');
+    const noResults = document.getElementById('noResults');
 
     let currentSearchRequest = null;
     let currentDetailsRequest = null;
-    let errorTimeout = null;
+    let selectedCard = null;
 
     document.addEventListener('click', (e) => {
         if (!searchForm.contains(e.target)) {
-            searchInput.blur(); 
+            searchInput.blur();
             searchBar.classList.remove('error');
         }
     });
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         searchBar.classList.remove('error');
         const query = searchInput.value.trim();
-        searchArtists(query);
+        searchArtists(query, true);
         return true;
     }
 
@@ -60,19 +60,25 @@ document.addEventListener('DOMContentLoaded', () => {
         searchBar.classList.remove('error');
         clearIcon.style.display = 'none';
     });
-    
-    // Function to perform artist search
-    async function searchArtists(query) {
+
+    function resetCardColors() {
+        document.querySelectorAll('.artist-card').forEach(card => {
+            card.style.backgroundColor = 'var(--artist-card-bg)';
+        });
+    }
+
+    async function searchArtists(query, isNewSearch = false) {
         try {
-            // Cancel any ongoing search request
             if (currentSearchRequest) {
                 currentSearchRequest.abort();
             }
 
-            // Show loading and keep existing results until new ones arrive
+            if (isNewSearch) {
+                artistDetails.style.display = 'none';
+                artistDetails.innerHTML = '';
+            }
+
             loadingSearch.style.display = 'block';
-            
-            // Create new AbortController for this request
             const controller = new AbortController();
             currentSearchRequest = controller;
 
@@ -81,18 +87,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await response.json();
 
-            // Clear results
-            resultsList.innerHTML = '';
-
             if (!data._embedded || !data._embedded.results || data._embedded.results.length === 0) {
-                document.getElementById('noResults').style.display = 'block';
+                resultsList.innerHTML = '';
+                noResults.style.display = 'block';
                 resultsList.style.display = 'none';
+                // if (isNewSearch) resetCardColors();
                 return;
             }
 
-            // Show results list and hide no results message
-            document.getElementById('noResults').style.display = 'none';
-            resultsList.style.display = 'grid';
+            noResults.style.display = 'none';
+            resultsList.style.display = 'flex';
+            resultsList.innerHTML = '';
+
+            if (isNewSearch) {
+                selectedCard = null;
+            }
 
             const artists = data._embedded.results;
             artists.forEach(artist => {
@@ -109,43 +118,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
 
                 card.addEventListener('click', () => {
-                    document.querySelectorAll('.artist-card').forEach(c => c.classList.remove('active'));
-                    card.classList.add('active');
+                    if (selectedCard === card) return;
+
+                    if (selectedCard) {
+                        selectedCard.style.backgroundColor = 'var(--artist-card-bg)';
+                    }
+
+                    selectedCard = card;
+                    card.style.backgroundColor = 'var(--artist-card-hover-bg)';
+
+                    artistDetails.style.display = 'none';
+                    artistDetails.innerHTML = '';
+                    loadingDetails.style.display = 'block';
+
                     getArtistDetails(artistId);
                 });
 
                 resultsList.appendChild(card);
             });
+
+            // if (isNewSearch) {
+            //     resetCardColors();
+            // }
+
         } catch (error) {
-            if (error.name === 'AbortError') {
-                return; // Request was aborted, do nothing
-            }
+            if (error.name === 'AbortError') return;
+            
             console.error('Error searching artists:', error);
-            document.getElementById('noResults').style.display = 'none';
-            resultsList.style.display = 'none';
             resultsList.innerHTML = '<div class="error-message">An error occurred while searching.</div>';
         } finally {
-            if (currentSearchRequest && currentSearchRequest.signal.aborted) {
-                return; // Don't hide loading if request was aborted
-            }
+            if (currentSearchRequest && currentSearchRequest.signal.aborted) return;
             loadingSearch.style.display = 'none';
             currentSearchRequest = null;
         }
     }
 
-    // Function to get artist details
     async function getArtistDetails(artistId) {
         try {
-            // Cancel any ongoing details request
             if (currentDetailsRequest) {
                 currentDetailsRequest.abort();
             }
 
-            // Hide existing details but keep the selected card state
-            artistDetails.innerHTML = '';
-            loadingDetails.style.display = 'block';
-
-            // Create new AbortController for this request
             const controller = new AbortController();
             currentDetailsRequest = controller;
 
@@ -154,29 +167,27 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const artist = await response.json();
 
-            const birthYear = artist.birthday ? artist.birthday : '';
-            const deathYear = artist.deathday ? ` - ${artist.deathday}` : '';
+            const birthYear = artist.birthday ? `(${artist.birthday}` : '';
+            const deathYear = artist.deathday ? ` - ${artist.deathday})` : birthYear ? ' -)' : '(-)';
             const nationality = artist.nationality ? `${artist.nationality}` : '';
             const biography = artist.biography ? artist.biography : '';
 
             artistDetails.innerHTML = `
-                <h2>${artist.name}${birthYear}${deathYear}</h2>
-                ${nationality ? `<p>${nationality}</p>` : ''}
-                ${biography ? `<p>${biography}</p>` : ''}
+                <h2>${artist.name} ${birthYear}${deathYear}</h2>
+                ${nationality ? `<p class="nationality">${nationality}</p>` : ''}
+                ${biography ? `<p class="biography">${biography}</p>` : ''}
             `;
+            artistDetails.style.display = 'block';
         } catch (error) {
-            if (error.name === 'AbortError') {
-                return; // Request was aborted, do nothing
-            }
+            if (error.name === 'AbortError') return;
+            
             console.error('Error getting artist details:', error);
             artistDetails.innerHTML = '<div class="error-message">An error occurred while fetching artist details.</div>';
+            artistDetails.style.display = 'block';
         } finally {
-            if (currentDetailsRequest && currentDetailsRequest.signal.aborted) {
-                return; // Don't hide loading if request was aborted
-            }
+            if (currentDetailsRequest && currentDetailsRequest.signal.aborted) return;
             loadingDetails.style.display = 'none';
             currentDetailsRequest = null;
         }
     }
-
 }); 
