@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
         searchInput.value = '';
         searchInput.focus();
         searchBar.classList.remove('error');
-        clearIcon.style.display = 'none';
     });
 
     function resetCardColors() {

@@ -16,11 +16,12 @@ class TokenManager:
         self.token = None
         self.token_expiry = None
         self.token_buffer = 300 
+        
     def get_token(self):
         """Get a valid token, refreshing if necessary"""
         current_time = datetime.now(timezone.utc)
         
-        # Check if token needs refresh
+        # check if token needs refresh
         if (not self.token or 
             not self.token_expiry or 
             current_time + timedelta(seconds=self.token_buffer) >= self.token_expiry):
@@ -63,7 +64,7 @@ def make_artsy_request(method, endpoint, **kwargs):
             
             kwargs['headers']['X-XAPP-Token'] = token
             
-            # Make request
+            # make request
             response = requests.request(method, f'{ARTSY_API_BASE}/{endpoint}', **kwargs)
             response.raise_for_status()
             return response.json()
@@ -78,7 +79,6 @@ def make_artsy_request(method, endpoint, **kwargs):
             raise
 
 # apis
-
 @app.route('/')
 def index():
     """Render the main page"""
