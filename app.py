@@ -84,7 +84,7 @@ def index():
     """Render the main page"""
     return render_template('index.html')
 
-@app.route('/api/search')
+@app.route('/api/search', methods=['GET'])
 def search_artists():
     """Search artists endpoint"""
     query = request.args.get('q', '').strip()
@@ -106,7 +106,7 @@ def search_artists():
         app.logger.error(f"Error searching artists: {str(e)}")
         return jsonify({'error': 'Failed to search artists'}), 500
 
-@app.route('/api/artist/<artist_id>')
+@app.route('/api/artist/<artist_id>', methods=['GET'])
 def get_artist(artist_id):
     """Get artist details endpoint"""
     if not artist_id:
