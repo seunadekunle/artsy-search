@@ -14,7 +14,10 @@
       <h1>Artist Search</h1>
     </header>
 
+    {% comment %} main section of the code {% endcomment %}
     <main>
+    
+    {% comment %} search section {% endcomment %}
       <div class="search-container">
         <form id="searchForm">
           <div class="search-bar">
@@ -55,6 +58,7 @@
         </form>
       </div>
 
+      
       <div
         id="loadingSearch"
         class="loading-container"
@@ -68,6 +72,7 @@
         />
       </div>
 
+      {% comment %} results section {% endcomment %}
       <div id="resultsSection">
         <div id="noResults" class="error-message" style="display: none">
           No results found.

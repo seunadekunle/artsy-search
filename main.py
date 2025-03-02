@@ -12,13 +12,16 @@ CLIENT_ID = "3dcaf2ec14b452cabb17"
 CLIENT_SECRET = "495cd6bd1654758181f54b557d9ac102"
 ARTSY_API_BASE = 'https://api.artsy.net/api'
 
+
 class TokenManager:
+    """class to manage authentication token"""
     def __init__(self):
         self.token = None
         self.token_expiry = None
         self.token_buffer = 300
         self.refresh_lock = False
     
+    # returns token to be used by the code
     def get_token(self):
         current_time = datetime.now(timezone.utc)
         
@@ -31,6 +34,7 @@ class TokenManager:
         return self._refresh_token()
 
     def _refresh_token(self):
+        """refreshes token, used thread lock to prevent multiple requests to refresh the token"""
         if self.refresh_lock:
             time.sleep(0.5)
             return self.token
@@ -40,6 +44,7 @@ class TokenManager:
             max_retries = 3
             retry_delay = 1
             
+            # for each attempt try to get the token and expiration datae
             for attempt in range(max_retries):
                 try:
                     response = requests.post(
@@ -78,6 +83,7 @@ def make_artsy_request(method, endpoint, **kwargs):
     
     for attempt in range(max_retries):
         try:
+            # get token and add it to the header
             token = token_manager.get_token()
             
             if 'headers' not in kwargs:
@@ -110,14 +116,17 @@ def make_artsy_request(method, endpoint, **kwargs):
             app.logger.error(f"Request failed after {max_retries} attempts: {str(e)}")
             raise
 
+# returns the html page
 @app.route('/', methods=['GET'])
 def index():
     return send_file('static/index.html')
 
+# serves static resources
 @app.route('/static/<path:filename>', methods=['GET'])
 def serve_static(filename):
     return send_from_directory('static', filename)
 
+# query to search using the artsy API
 @app.route('/api/search/<query>', methods=['GET'])
 def search_artists(query):
     if not query:
@@ -138,6 +147,7 @@ def search_artists(query):
         app.logger.error(f"Error searching artists: {str(e)}")
         return jsonify({'error': 'Failed to search artists'}), 500
 
+# query to get specific artists based on their id
 @app.route('/api/artist/<artist_id>', methods=['GET'])
 def get_artist(artist_id):
     if not artist_id:
@@ -154,11 +164,11 @@ def get_artist(artist_id):
 # error handlers
 
 @app.errorhandler(404)
-def not_found_error(error):
+def not_found_error():
     return jsonify({'error': 'Not found'}), 404
 
 @app.errorhandler(500)
-def internal_error(error):
+def internal_error():
     return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
