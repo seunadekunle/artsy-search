@@ -268,14 +268,3 @@ footer a {
     margin: 20px auto;
     width: 30%;
 }
-
-@media (max-width: 600px) {
-    main, .search-container {
-        padding: 16px;
-    }
-    
-    h1 {
-        font-size: 20px;
-    }
-}
-

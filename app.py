@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory, send_file
 import requests
 import os
 from datetime import datetime, timedelta
@@ -15,46 +15,66 @@ class TokenManager:
     def __init__(self):
         self.token = None
         self.token_expiry = None
-        self.token_buffer = 300 
-        
+        self.token_buffer = 300
+        self.refresh_lock = False
+    
     def get_token(self):
-        """Get a valid token, refreshing if necessary"""
         current_time = datetime.now(timezone.utc)
         
-        # check if token needs refresh
-        if (not self.token or 
-            not self.token_expiry or 
-            current_time + timedelta(seconds=self.token_buffer) >= self.token_expiry):
-            self._refresh_token()
+        if self.token and self.token_expiry:
+            time_until_expiry = (self.token_expiry - current_time).total_seconds()
+            
+            if time_until_expiry > self.token_buffer:
+                return self.token
         
-        return self.token
+        return self._refresh_token()
 
     def _refresh_token(self):
-        """Refresh the Artsy API token"""
+        if self.refresh_lock:
+            time.sleep(0.5)
+            return self.token
+        
         try:
-            response = requests.post(
-                f'{ARTSY_API_BASE}/tokens/xapp_token',
-                data={
-                    'client_id': CLIENT_ID,
-                    'client_secret': CLIENT_SECRET
-                }
-            )
-            response.raise_for_status()
-            token_data = response.json()
+            self.refresh_lock = True
+            max_retries = 3
+            retry_delay = 1
             
-            self.token = token_data['token']
-            self.token_expiry = datetime.fromisoformat(token_data['expires_at'].replace('Z', '+00:00'))
-            app.logger.info(f"Token refreshed, expires at {self.token_expiry}")
-            
-        except requests.exceptions.RequestException as e:
-            app.logger.error(f"Error refreshing Artsy token: {str(e)}")
-            raise
+            for attempt in range(max_retries):
+                try:
+                    response = requests.post(
+                        f'{ARTSY_API_BASE}/tokens/xapp_token',
+                        data={
+                            'client_id': CLIENT_ID,
+                            'client_secret': CLIENT_SECRET
+                        },
+                        timeout=10
+                    )
+                    response.raise_for_status()
+                    token_data = response.json()
+                    
+                    self.token = token_data['token']
+                    self.token_expiry = datetime.fromisoformat(token_data['expires_at'].replace('Z', '+00:00'))
+                    
+                    app.logger.info(f"Token refreshed successfully, expires at {self.token_expiry}")
+                    return self.token
+                    
+                except requests.exceptions.RequestException as e:
+                    if attempt == max_retries - 1:
+                        app.logger.error(f"Failed to refresh token after {max_retries} attempts: {str(e)}")
+                        raise
+                    
+                    app.logger.warning(f"Token refresh attempt {attempt + 1} failed: {str(e)}")
+                    time.sleep(retry_delay * (attempt + 1))
+                    
+        finally:
+            self.refresh_lock = False
 
 token_manager = TokenManager()
 
 def make_artsy_request(method, endpoint, **kwargs):
-    """Make a request to Artsy API with automatic token refresh"""
-    max_retries = 2
+    max_retries = 3
+    retry_delay = 1
+    
     for attempt in range(max_retries):
         try:
             token = token_manager.get_token()
@@ -64,29 +84,41 @@ def make_artsy_request(method, endpoint, **kwargs):
             
             kwargs['headers']['X-XAPP-Token'] = token
             
-            # make request
-            response = requests.request(method, f'{ARTSY_API_BASE}/{endpoint}', **kwargs)
+            response = requests.request(
+                method, 
+                f'{ARTSY_API_BASE}/{endpoint}', 
+                timeout=10,
+                **kwargs
+            )
             response.raise_for_status()
             return response.json()
             
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 401 and attempt < max_retries - 1:
                 token_manager.token = None
+                time.sleep(retry_delay * (attempt + 1))
                 continue
             raise
+            
         except requests.exceptions.RequestException as e:
-            app.logger.error(f"Error making Artsy request: {str(e)}")
+            if attempt < max_retries - 1:
+                app.logger.warning(f"Request attempt {attempt + 1} failed: {str(e)}")
+                time.sleep(retry_delay * (attempt + 1))
+                continue
+            
+            app.logger.error(f"Request failed after {max_retries} attempts: {str(e)}")
             raise
 
-# apis
-@app.route('/')
+@app.route('/', methods=['GET'])
 def index():
-    """Render the main page"""
-    return render_template('index.html')
+    return send_file('static/index.html')
+
+@app.route('/static/<path:filename>', methods=['GET'])
+def serve_static(filename):
+    return send_from_directory('static', filename)
 
 @app.route('/api/search', methods=['GET'])
 def search_artists():
-    """Search artists endpoint"""
     query = request.args.get('q', '').strip()
     if not query:
         return jsonify({'error': 'Query parameter is required'}), 400
@@ -108,7 +140,6 @@ def search_artists():
 
 @app.route('/api/artist/<artist_id>', methods=['GET'])
 def get_artist(artist_id):
-    """Get artist details endpoint"""
     if not artist_id:
         return jsonify({'error': 'Artist ID is required'}), 400
 
@@ -118,6 +149,10 @@ def get_artist(artist_id):
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Error getting artist details: {str(e)}")
         return jsonify({'error': 'Failed to get artist details'}), 500
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'healthy'}), 200
 
 @app.errorhandler(404)
 def not_found_error(error):
