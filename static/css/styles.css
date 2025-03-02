@@ -257,12 +257,12 @@ footer a {
 }
 
 .error-message {
-    background-color: ##aafaf;
+    background-color: #afafaf;
     color: #242424;
     padding: 16px 20px;
     border-radius: 15px;
     text-align: center;
     font-size: 16px;
     margin: 20px auto;
-    width: 50%;
+    width: 45%;
 }
