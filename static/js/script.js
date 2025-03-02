@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    
     const searchForm = document.getElementById('searchForm');
     const searchInput = document.getElementById('searchInput');
     const searchIcon = document.getElementById('searchIcon');
@@ -81,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const controller = new AbortController();
             currentSearchRequest = controller;
 
-            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+            const response = await fetch(`/api/search/${encodeURIComponent(query)}`, {
                 signal: controller.signal
             });
             const data = await response.json();
@@ -90,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 resultsList.innerHTML = '';
                 noResults.style.display = 'block';
                 resultsList.style.display = 'none';
-                // if (isNewSearch) resetCardColors();
                 return;
             }
 
@@ -135,10 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 resultsList.appendChild(card);
             });
-
-            // if (isNewSearch) {
-            //     resetCardColors();
-            // }
 
         } catch (error) {
             if (error.name === 'AbortError') return;

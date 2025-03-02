@@ -170,7 +170,6 @@ footer a {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 10px;
-    padding: 20px;
     margin: 20px auto;
     width: 85%;
     max-width: none;
@@ -225,8 +224,7 @@ footer a {
 
 .artist-details {
     max-width: 800px;
-    margin: 20px auto;
-    padding: 30px;
+    margin: 0 auto 20px auto;
     background-color: white;
     line-height: 1;
 }
@@ -259,7 +257,7 @@ footer a {
 }
 
 .error-message {
-    background-color: #e6e6e6;
+    background-color: ##aafaf;
     color: #242424;
     padding: 16px 20px;
     border-radius: 15px;
