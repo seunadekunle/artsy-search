@@ -8,9 +8,9 @@ from datetime import timezone
 app = Flask(__name__)
 
 # hardcoded values (not optimal)
-CLIENT_ID = "3dcaf2ec14b452cabb17"
-CLIENT_SECRET = "495cd6bd1654758181f54b557d9ac102"
-ARTSY_API_BASE = 'https://api.artsy.net/api'
+CLIENT_ID = ""
+CLIENT_SECRET = ""
+ARTSY_API_BASE = ''
 
 
 class TokenManager:
